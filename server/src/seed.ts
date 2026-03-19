@@ -1,0 +1,183 @@
+import { Database as DatabaseType } from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
+import { getAssessmentFiles, parseAssessmentHtml } from './assessmentParser';
+
+function parseCsv(filePath: string): Record<string, string>[] {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const lines = content.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+  return lines.slice(1).map(line => {
+    const values: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let i = 0;
+
+    while (i < line.length) {
+      const char = line[i];
+      if (char === '"' && inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 2;
+      } else if (char === '"') {
+        inQuotes = !inQuotes;
+        i++;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+        i++;
+      } else {
+        current += char;
+        i++;
+      }
+    }
+    values.push(current.trim());
+
+    const row: Record<string, string> = {};
+    headers.forEach((header, idx) => {
+      row[header] = (values[idx] || '').trim();
+    });
+    return row;
+  });
+}
+
+function getDataDir(): string {
+  return process.env.NODE_ENV === 'production' ? '/data' : path.join(__dirname, '..', '..', 'data');
+}
+
+export function seedDatabase(db: DatabaseType): void {
+  const dataDir = getDataDir();
+  const seedDir = path.join(dataDir, 'seed');
+  const appTypesFile = path.join(seedDir, 'AppTypes.csv');
+  const appPropertiesFile = path.join(seedDir, 'AppProperties.csv');
+  const modDriversFile = path.join(seedDir, 'ModernizationDrivers.csv');
+
+  if (fs.existsSync(appTypesFile)) {
+    const rows = parseCsv(appTypesFile);
+    const insert = db.prepare(
+      'INSERT INTO AppType (name, language, langVer, framework, frameworkVer) VALUES (?, ?, ?, ?, ?)'
+    );
+    for (const row of rows) {
+      insert.run(row.name, row.language, row.langVer, row.framework, row.frameworkVer);
+    }
+    console.log(`Seeded ${rows.length} AppTypes from CSV`);
+  }
+
+  if (fs.existsSync(appPropertiesFile)) {
+    const rows = parseCsv(appPropertiesFile);
+    const insert = db.prepare(
+      'INSERT INTO AppProperty (name, dataType, defaultValue) VALUES (?, ?, ?)'
+    );
+    for (const row of rows) {
+      insert.run(row.name, row.type || 'VAR', row.defaultValue);
+    }
+    console.log(`Seeded ${rows.length} AppProperties from CSV`);
+  }
+
+  if (fs.existsSync(modDriversFile)) {
+    const rows = parseCsv(modDriversFile);
+    const insert = db.prepare(
+      'INSERT INTO ModDriver (name, desc, score) VALUES (?, ?, ?)'
+    );
+    for (const row of rows) {
+      insert.run(row.name, row.description, parseInt(row.score, 10) || 0);
+    }
+    console.log(`Seeded ${rows.length} ModDrivers from CSV`);
+  }
+
+  // Load applications: real assessments take priority over demo data
+  loadApplications(db);
+}
+
+export function loadApplications(db: DatabaseType): { mode: string; count: number } {
+  const dataDir = getDataDir();
+  const assessmentFiles = getAssessmentFiles(dataDir);
+
+  if (assessmentFiles.length > 0) {
+    // Real assessments — upsert by reportFilename, preserving user data (drivers, include)
+    const findByReport = db.prepare('SELECT id FROM Application WHERE reportFilename = ?');
+    const insert = db.prepare(
+      'INSERT INTO Application (name, include, effort, target, reportFilename, properties) VALUES (?, 1, ?, ?, ?, ?)'
+    );
+    const update = db.prepare(
+      'UPDATE Application SET name = ?, effort = ?, properties = ? WHERE reportFilename = ?'
+    );
+
+    // Remove any demo apps (those without a matching assessment file)
+    const reportFilenames = assessmentFiles.map(f => path.basename(f));
+    const existingApps = db.prepare('SELECT id, reportFilename FROM Application').all() as { id: number; reportFilename: string | null }[];
+    for (const app of existingApps) {
+      if (app.reportFilename && !reportFilenames.includes(app.reportFilename)) {
+        // Check if it's a demo app (not from a real file) — remove it
+        const filePath = path.join(dataDir, 'assessments', app.reportFilename);
+        if (!fs.existsSync(filePath)) {
+          db.prepare('DELETE FROM Application WHERE id = ?').run(app.id);
+        }
+      }
+    }
+
+    let added = 0;
+    let updated = 0;
+    for (const file of assessmentFiles) {
+      const parsed = parseAssessmentHtml(file);
+      const properties: Record<string, unknown> = {};
+      if (parsed.language) properties['Language'] = parsed.language;
+      if (parsed.framework) properties['Framework'] = parsed.framework;
+      if (parsed.langVer) properties['LanguageVersion'] = parsed.langVer;
+      if (parsed.buildTools) properties['BuildTools'] = parsed.buildTools;
+      properties['StoryPoints'] = parsed.totalStoryPoints;
+
+      const existing = findByReport.get(parsed.reportFilename) as { id: number } | undefined;
+      if (existing) {
+        // Update extracted fields, keep drivers/include/target intact
+        update.run(
+          parsed.name,
+          parsed.totalStoryPoints,
+          JSON.stringify(properties),
+          parsed.reportFilename
+        );
+        updated++;
+      } else {
+        insert.run(
+          parsed.name,
+          parsed.totalStoryPoints,
+          'Unknown',
+          parsed.reportFilename,
+          JSON.stringify(properties)
+        );
+        added++;
+      }
+    }
+    console.log(`Assessment refresh: ${added} added, ${updated} updated`);
+    return { mode: 'assessments', count: added + updated };
+  } else {
+    // No real assessments — load demo data only if no apps exist yet
+    const appCount = (db.prepare('SELECT COUNT(*) as cnt FROM Application').get() as { cnt: number }).cnt;
+    if (appCount > 0) {
+      console.log(`No assessment files found, keeping ${appCount} existing applications`);
+      return { mode: 'demo', count: appCount };
+    }
+
+    const seedDir = path.join(dataDir, 'seed');
+    const applicationsFile = path.join(seedDir, 'DemoApplications.csv');
+    if (fs.existsSync(applicationsFile)) {
+      const rows = parseCsv(applicationsFile);
+      const insert = db.prepare(
+        'INSERT INTO Application (name, include, effort, target, reportFilename, properties) VALUES (?, ?, ?, ?, ?, ?)'
+      );
+      for (const row of rows) {
+        insert.run(
+          row.name,
+          parseInt(row.include, 10) || 0,
+          parseInt(row.effort, 10) || 0,
+          row.target,
+          row.reportFilename,
+          row.properties || '{}'
+        );
+      }
+      console.log(`Loaded ${rows.length} demo applications from CSV`);
+      return { mode: 'demo', count: rows.length };
+    }
+    return { mode: 'demo', count: 0 };
+  }
+}

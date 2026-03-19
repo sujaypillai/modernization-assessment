@@ -1,0 +1,6 @@
+name,type,defaultValue
+"Criticality",INT,0
+"IsCustomerFacing", BOOL, false
+"IsRevenueGenerating", BOOL, false
+"SourceCodeAvailable", BOOL, true
+"ActiveDevelopment", BOOL, false
