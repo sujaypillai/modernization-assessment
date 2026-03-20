@@ -6,6 +6,7 @@ export interface ParsedAssessment {
   language: string;
   framework: string;
   langVer: string;
+  frameworkVer: string;
   buildTools: string;
   totalStoryPoints: number;
   reportFilename: string;
@@ -68,6 +69,7 @@ export function parseAssessmentHtml(filePath: string): ParsedAssessment | null {
     language: appInfo['Language'] || '',
     framework: appInfo['Frameworks'] === 'N/A' ? '' : (appInfo['Frameworks'] || ''),
     langVer: appInfo['JDK version'] || appInfo['Runtime version'] || '',
+    frameworkVer: appInfo['Framework version'] || '',
     buildTools: appInfo['Build tools'] || '',
     totalStoryPoints,
     reportFilename: path.basename(filePath)

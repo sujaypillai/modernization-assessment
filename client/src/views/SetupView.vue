@@ -15,22 +15,14 @@ import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { getAppTypes, createAppType, updateAppType, deleteAppType } from '@/services/api'
-import type { AppType, AppProperty, ModDriver } from '@/types'
+import type { AppProperty, ModDriver } from '@/types'
 import { useAppPropertyStore } from '@/stores/appPropertyStore'
 import { useModDriverStore } from '@/stores/modDriverStore'
 
 const toast = useToast()
 const confirm = useConfirm()
 
-const activeSetupTab = ref('app-types')
-
-// AppTypes (no shared store needed — only used here)
-const appTypes = ref<AppType[]>([])
-const appTypesLoading = ref(true)
-const showAppTypeDialog = ref(false)
-const editingAppType = ref<Partial<AppType>>({})
-const savingAppType = ref(false)
+const activeSetupTab = ref('app-properties')
 
 // AppProperties (shared store)
 const {
@@ -57,65 +49,6 @@ const modDriversLoading = ref(true)
 const showModDriverDialog = ref(false)
 const editingModDriver = ref<Partial<ModDriver>>({})
 const savingModDriver = ref(false)
-
-// AppTypes CRUD
-async function loadAppTypes() {
-  appTypesLoading.value = true
-  try {
-    appTypes.value = await getAppTypes()
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load app types', life: 3000 })
-  } finally {
-    appTypesLoading.value = false
-  }
-}
-
-function openNewAppType() {
-  editingAppType.value = { name: '', language: '', langVer: '', framework: '', frameworkVer: '' }
-  showAppTypeDialog.value = true
-}
-
-function editAppType(appType: AppType) {
-  editingAppType.value = { ...appType }
-  showAppTypeDialog.value = true
-}
-
-async function saveAppType() {
-  savingAppType.value = true
-  try {
-    if (editingAppType.value.id) {
-      await updateAppType(editingAppType.value.id, editingAppType.value)
-      toast.add({ severity: 'success', summary: 'Updated', detail: 'App type updated', life: 2000 })
-    } else {
-      await createAppType(editingAppType.value as Omit<AppType, 'id'>)
-      toast.add({ severity: 'success', summary: 'Created', detail: 'App type created', life: 2000 })
-    }
-    showAppTypeDialog.value = false
-    await loadAppTypes()
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to save app type', life: 3000 })
-  } finally {
-    savingAppType.value = false
-  }
-}
-
-function confirmDeleteAppType(appType: AppType) {
-  confirm.require({
-    message: `Delete "${appType.name}"?`,
-    header: 'Confirm Delete',
-    icon: 'pi pi-exclamation-triangle',
-    acceptClass: 'p-button-danger',
-    accept: async () => {
-      try {
-        await deleteAppType(appType.id)
-        toast.add({ severity: 'success', summary: 'Deleted', detail: 'App type deleted', life: 2000 })
-        await loadAppTypes()
-      } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete app type', life: 3000 })
-      }
-    }
-  })
-}
 
 // AppProperties CRUD
 async function loadAppProperties() {
@@ -232,7 +165,6 @@ function confirmDeleteModDriver(modDriver: ModDriver) {
 }
 
 onMounted(() => {
-  loadAppTypes()
   loadAppProperties()
   loadModDrivers()
 })
@@ -242,50 +174,15 @@ onMounted(() => {
   <div class="setup-view">
     <div class="view-header">
       <h2>Setup</h2>
-      <p class="view-description">Configure application types, properties, and modernization drivers</p>
+      <p class="view-description">Configure application properties and modernization drivers</p>
     </div>
     
     <Tabs v-model:value="activeSetupTab" class="setup-tabs">
       <TabList>
-        <Tab value="app-types">App Types</Tab>
         <Tab value="app-properties">App Properties</Tab>
         <Tab value="mod-drivers">Mod Drivers</Tab>
       </TabList>
       <TabPanels>
-        <!-- App Types Tab -->
-        <TabPanel value="app-types">
-          <div class="section-header">
-            <h3>Application Types</h3>
-            <Button label="Add Type" icon="pi pi-plus" @click="openNewAppType" />
-          </div>
-          <DataTable
-            :value="appTypes"
-            :loading="appTypesLoading"
-            stripedRows
-            dataKey="id"
-            class="setup-table"
-          >
-            <template #empty>
-              <div class="empty-state">
-              <p>No app types defined</p>
-            </div>
-          </template>
-          <Column field="name" header="Name" sortable />
-          <Column field="language" header="Language" sortable />
-          <Column field="langVer" header="Lang Version" />
-          <Column field="framework" header="Framework" sortable />
-          <Column field="frameworkVer" header="Framework Version" />
-          <Column header="Actions" style="width: 150px">
-            <template #body="{ data }">
-              <div class="action-buttons">
-                <Button icon="pi pi-pencil" text rounded @click="editAppType(data)" />
-                <Button icon="pi pi-trash" text rounded severity="danger" @click="confirmDeleteAppType(data)" />
-              </div>
-            </template>
-          </Column>
-        </DataTable>
-        </TabPanel>
-        
         <!-- App Properties Tab -->
         <TabPanel value="app-properties">
         <div class="section-header">
@@ -351,45 +248,6 @@ onMounted(() => {
         </TabPanel>
       </TabPanels>
     </Tabs>
-    
-    <!-- App Type Dialog -->
-    <Dialog
-      v-model:visible="showAppTypeDialog"
-      :header="editingAppType.id ? 'Edit App Type' : 'New App Type'"
-      modal
-      :style="{ width: '500px' }"
-    >
-      <div class="dialog-form">
-        <div class="form-field">
-          <label for="apptype-name">Name</label>
-          <InputText id="apptype-name" v-model="editingAppType.name" class="w-full" />
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label for="apptype-language">Language</label>
-            <InputText id="apptype-language" v-model="editingAppType.language" class="w-full" />
-          </div>
-          <div class="form-field">
-            <label for="apptype-langver">Version</label>
-            <InputText id="apptype-langver" v-model="editingAppType.langVer" class="w-full" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label for="apptype-framework">Framework</label>
-            <InputText id="apptype-framework" v-model="editingAppType.framework" class="w-full" />
-          </div>
-          <div class="form-field">
-            <label for="apptype-frameworkver">Version</label>
-            <InputText id="apptype-frameworkver" v-model="editingAppType.frameworkVer" class="w-full" />
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <Button label="Cancel" text @click="showAppTypeDialog = false" />
-        <Button label="Save" :loading="savingAppType" @click="saveAppType" />
-      </template>
-    </Dialog>
     
     <!-- App Property Dialog -->
     <Dialog

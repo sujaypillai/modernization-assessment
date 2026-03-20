@@ -5,6 +5,7 @@ import Tag from 'primevue/tag'
 import ReportViewer from '@/components/ReportViewer.vue'
 import { getAppProperties, getModDrivers } from '@/services/api'
 import type { Application, AppProperty, ModDriver } from '@/types'
+import { formatAppTypeLabel } from '@/types'
 
 const props = defineProps<{ application: Application | null }>()
 const emit = defineEmits<{ close: [] }>()
@@ -64,6 +65,10 @@ function getPropertyValue(propName: string): string {
       <section class="details-section">
         <h4>General</h4>
         <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Type</span>
+            <span class="detail-value">{{ formatAppTypeLabel(application.appType) || 'N/A' }}</span>
+          </div>
           <div class="detail-item">
             <span class="detail-label">Included</span>
             <Tag :value="application.include ? 'Yes' : 'No'" :severity="application.include ? 'success' : 'secondary'" />

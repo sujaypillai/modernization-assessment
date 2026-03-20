@@ -1,4 +1,4 @@
-import type { Application, AppType, AppProperty, ModDriver } from '@/types'
+import type { Application, AppProperty, ModDriver } from '@/types'
 
 const API_BASE = '/api'
 
@@ -63,33 +63,6 @@ export async function uploadReports(files: File[]): Promise<{ message: string; u
     throw new Error(err.message || `HTTP ${response.status}`)
   }
   return response.json()
-}
-
-// AppTypes
-export async function getAppTypes(): Promise<AppType[]> {
-  return fetchJson<AppType[]>(`${API_BASE}/app-types`)
-}
-
-export async function getAppType(id: number): Promise<AppType> {
-  return fetchJson<AppType>(`${API_BASE}/app-types/${id}`)
-}
-
-export async function createAppType(data: Omit<AppType, 'id'>): Promise<AppType> {
-  return fetchJson<AppType>(`${API_BASE}/app-types`, {
-    method: 'POST',
-    body: JSON.stringify(data)
-  })
-}
-
-export async function updateAppType(id: number, data: Partial<AppType>): Promise<AppType> {
-  return fetchJson<AppType>(`${API_BASE}/app-types/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data)
-  })
-}
-
-export async function deleteAppType(id: number): Promise<void> {
-  await fetch(`${API_BASE}/app-types/${id}`, { method: 'DELETE' })
 }
 
 // AppProperties

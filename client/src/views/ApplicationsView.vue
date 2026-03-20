@@ -8,6 +8,7 @@ import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
 import { refreshAssessments, uploadReports } from '@/services/api'
 import type { Application } from '@/types'
+import { formatAppTypeLabel } from '@/types'
 import AppDetails from '@/components/AppDetails.vue'
 import ReportViewer from '@/components/ReportViewer.vue'
 import { useApplicationStore } from '@/stores/applicationStore'
@@ -187,6 +188,12 @@ onMounted(load)
         <Column field="name" header="Name" sortable style="min-width: 200px">
           <template #body="{ data }">
             <a class="app-name" @click="selectedApp = data">{{ data.name }}</a>
+          </template>
+        </Column>
+
+        <Column header="Type" sortable field="appType" style="min-width: 180px">
+          <template #body="{ data }">
+            {{ formatAppTypeLabel(data.appType) || '-' }}
           </template>
         </Column>
         

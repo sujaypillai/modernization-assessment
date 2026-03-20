@@ -17,6 +17,18 @@ const db: DatabaseType = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 
 export function initializeDatabase(): void {
+  // AppType table (must exist before Application for FK)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS AppType (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      language TEXT NOT NULL DEFAULT '',
+      langVer TEXT NOT NULL DEFAULT '',
+      framework TEXT NOT NULL DEFAULT '',
+      frameworkVer TEXT NOT NULL DEFAULT '',
+      UNIQUE(language, langVer, framework, frameworkVer)
+    )
+  `);
+
   // Application table
   db.exec(`
     CREATE TABLE IF NOT EXISTS Application (
@@ -26,20 +38,9 @@ export function initializeDatabase(): void {
       effort INTEGER DEFAULT 0,
       target TEXT,
       reportFilename TEXT,
+      typeId INTEGER REFERENCES AppType(id),
       properties TEXT DEFAULT '{}',
       drivers TEXT DEFAULT '{}'
-    )
-  `);
-
-  // AppType table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS AppType (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      language TEXT,
-      langVer TEXT,
-      framework TEXT,
-      frameworkVer TEXT
     )
   `);
 

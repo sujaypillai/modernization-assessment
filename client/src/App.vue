@@ -15,6 +15,7 @@ import ValueAssessmentView from './views/ValueAssessmentView.vue'
 import ResultsView from './views/ResultsView.vue'
 import QuadrantView from './views/QuadrantView.vue'
 import SetupView from './views/SetupView.vue'
+import ExportView from './views/ExportView.vue'
 import { useAppPropertyStore } from './stores/appPropertyStore'
 
 const activeTab = ref('welcome')
@@ -44,6 +45,7 @@ onMounted(() => {
           <Tab value="results">Results</Tab>
           <Tab value="quadrant">Quadrant</Tab>
           <Tab value="setup">Setup</Tab>
+          <Tab value="export">Export</Tab>
         </TabList>
         <TabPanels>
             <TabPanel value="welcome">
@@ -66,6 +68,9 @@ onMounted(() => {
             </TabPanel>
             <TabPanel value="setup">
               <SetupView />
+            </TabPanel>
+            <TabPanel value="export">
+              <ExportView />
             </TabPanel>
         </TabPanels>
       </Tabs>

@@ -5,17 +5,25 @@ export interface Application {
   effort: number
   target: string
   reportFilename: string
+  typeId: number | null
+  appType: AppType | null
   properties: Record<string, unknown>
   drivers: Record<string, unknown>
 }
 
 export interface AppType {
   id: number
-  name: string
   language: string
   langVer: string
   framework: string
   frameworkVer: string
+}
+
+export function formatAppTypeLabel(t: AppType | null | undefined): string {
+  if (!t) return ''
+  const lang = [t.language, t.langVer].filter(Boolean).join(' ')
+  const fw = [t.framework, t.frameworkVer].filter(Boolean).join(' ')
+  return [lang, fw].filter(Boolean).join(' / ')
 }
 
 export interface AppProperty {

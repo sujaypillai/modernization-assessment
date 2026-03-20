@@ -10,21 +10,36 @@ interface Application {
   effort: string | null;
   target: string | null;
   reportFilename: string | null;
+  typeId: number | null;
   properties: string;
   drivers: string;
+}
+
+interface AppType {
+  id: number;
+  language: string;
+  langVer: string;
+  framework: string;
+  frameworkVer: string;
+}
+
+function enrichApp(app: Application) {
+  const appType = app.typeId
+    ? db.prepare('SELECT * FROM AppType WHERE id = ?').get(app.typeId) as AppType | undefined
+    : undefined;
+  return {
+    ...app,
+    include: Boolean(app.include),
+    properties: JSON.parse(app.properties || '{}'),
+    drivers: JSON.parse(app.drivers || '{}'),
+    appType: appType ?? null
+  };
 }
 
 // GET all applications
 router.get('/', (_req, res) => {
   const apps = db.prepare('SELECT * FROM Application').all() as Application[];
-  // Parse JSON fields for response
-  const result = apps.map(app => ({
-    ...app,
-    include: Boolean(app.include),
-    properties: JSON.parse(app.properties || '{}'),
-    drivers: JSON.parse(app.drivers || '{}')
-  }));
-  res.json(result);
+  res.json(apps.map(enrichApp));
 });
 
 // GET single application
@@ -33,12 +48,7 @@ router.get('/:id', (req, res) => {
   if (!app) {
     return res.status(404).json({ error: 'Application not found' });
   }
-  res.json({
-    ...app,
-    include: Boolean(app.include),
-    properties: JSON.parse(app.properties || '{}'),
-    drivers: JSON.parse(app.drivers || '{}')
-  });
+  res.json(enrichApp(app));
 });
 
 // POST create application

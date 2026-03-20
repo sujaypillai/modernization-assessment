@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { useApplicationStore } from './applicationStore'
 import { useAppPropertyStore } from './appPropertyStore'
+import { formatAppTypeLabel } from '@/types'
 
 const filters = ref<Record<string, unknown[]>>({})
 
@@ -10,6 +11,7 @@ export function useFilterStore() {
 
   const filterDefinitions = computed(() => {
     const defs: { key: string; label: string; dataType: string }[] = [
+      { key: 'type', label: 'Type', dataType: 'VAR' },
       { key: 'target', label: 'Target', dataType: 'VAR' }
     ]
     for (const prop of appProperties.value) {
@@ -24,6 +26,8 @@ export function useFilterStore() {
       let val: unknown
       if (key === 'target') {
         val = app.target
+      } else if (key === 'type') {
+        val = formatAppTypeLabel(app.appType)
       } else if (key.startsWith('prop:')) {
         val = app.properties?.[key.slice(5)]
       }
@@ -45,6 +49,8 @@ export function useFilterStore() {
         let value: unknown
         if (key === 'target') {
           value = app.target
+        } else if (key === 'type') {
+          value = formatAppTypeLabel(app.appType)
         } else if (key.startsWith('prop:')) {
           value = app.properties?.[key.slice(5)]
         }

@@ -51,20 +51,8 @@ function getSeedDir(): string {
 
 export function seedDatabase(db: DatabaseType): void {
   const seedDir = getSeedDir();
-  const appTypesFile = path.join(seedDir, 'AppTypes.csv');
   const appPropertiesFile = path.join(seedDir, 'AppProperties.csv');
   const modDriversFile = path.join(seedDir, 'ModernizationDrivers.csv');
-
-  if (fs.existsSync(appTypesFile)) {
-    const rows = parseCsv(appTypesFile);
-    const insert = db.prepare(
-      'INSERT INTO AppType (name, language, langVer, framework, frameworkVer) VALUES (?, ?, ?, ?, ?)'
-    );
-    for (const row of rows) {
-      insert.run(row.name, row.language, row.langVer, row.framework, row.frameworkVer);
-    }
-    console.log(`Seeded ${rows.length} AppTypes from CSV`);
-  }
 
   if (fs.existsSync(appPropertiesFile)) {
     const rows = parseCsv(appPropertiesFile);
@@ -99,11 +87,17 @@ export function loadApplications(db: DatabaseType): { mode: string; count: numbe
   if (assessmentFiles.length > 0) {
     // Real assessments — upsert by reportFilename, preserving user data (drivers, include)
     const findByReport = db.prepare('SELECT id FROM Application WHERE reportFilename = ?');
+    const findType = db.prepare(
+      'SELECT id FROM AppType WHERE language = ? AND langVer = ? AND framework = ? AND frameworkVer = ?'
+    );
+    const insertType = db.prepare(
+      'INSERT INTO AppType (language, langVer, framework, frameworkVer) VALUES (?, ?, ?, ?)'
+    );
     const insert = db.prepare(
-      'INSERT INTO Application (name, include, effort, target, reportFilename, properties) VALUES (?, 1, ?, ?, ?, ?)'
+      'INSERT INTO Application (name, include, effort, target, reportFilename, typeId, properties) VALUES (?, 1, ?, ?, ?, ?, ?)'
     );
     const update = db.prepare(
-      'UPDATE Application SET name = ?, effort = ?, properties = ? WHERE reportFilename = ?'
+      'UPDATE Application SET name = ?, effort = ?, typeId = ?, properties = ? WHERE reportFilename = ?'
     );
 
     // Remove any demo apps (those without a matching assessment file)
@@ -140,8 +134,25 @@ export function loadApplications(db: DatabaseType): { mode: string; count: numbe
       if (parsed.language) properties['Language'] = parsed.language;
       if (parsed.framework) properties['Framework'] = parsed.framework;
       if (parsed.langVer) properties['LanguageVersion'] = parsed.langVer;
+      if (parsed.frameworkVer) properties['FrameworkVersion'] = parsed.frameworkVer;
       if (parsed.buildTools) properties['BuildTools'] = parsed.buildTools;
       properties['StoryPoints'] = parsed.totalStoryPoints;
+
+      // Find or create AppType from assessment data
+      let typeId: number | null = null;
+      const lang = parsed.language || '';
+      const langV = parsed.langVer || '';
+      const fw = parsed.framework || '';
+      const fwV = parsed.frameworkVer || '';
+      if (lang || fw) {
+        const existingType = findType.get(lang, langV, fw, fwV) as { id: number } | undefined;
+        if (existingType) {
+          typeId = existingType.id;
+        } else {
+          const typeResult = insertType.run(lang, langV, fw, fwV);
+          typeId = Number(typeResult.lastInsertRowid);
+        }
+      }
 
       const existing = findByReport.get(parsed.reportFilename) as { id: number } | undefined;
       if (existing) {
@@ -149,6 +160,7 @@ export function loadApplications(db: DatabaseType): { mode: string; count: numbe
         update.run(
           parsed.name,
           parsed.totalStoryPoints,
+          typeId,
           JSON.stringify(properties),
           parsed.reportFilename
         );
@@ -159,6 +171,7 @@ export function loadApplications(db: DatabaseType): { mode: string; count: numbe
           parsed.totalStoryPoints,
           'Unknown',
           parsed.reportFilename,
+          typeId,
           JSON.stringify(properties)
         );
         added++;
@@ -177,16 +190,36 @@ export function loadApplications(db: DatabaseType): { mode: string; count: numbe
     const applicationsFile = path.join(demoSeedDir, 'DemoApplications.csv');
     if (fs.existsSync(applicationsFile)) {
       const rows = parseCsv(applicationsFile);
+      const findType = db.prepare(
+        'SELECT id FROM AppType WHERE language = ? AND langVer = ? AND framework = ? AND frameworkVer = ?'
+      );
+      const insertType = db.prepare(
+        'INSERT INTO AppType (language, langVer, framework, frameworkVer) VALUES (?, ?, ?, ?)'
+      );
       const insert = db.prepare(
-        'INSERT INTO Application (name, include, effort, target, reportFilename, properties) VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO Application (name, include, effort, target, reportFilename, typeId, properties) VALUES (?, ?, ?, ?, ?, ?, ?)'
       );
       for (const row of rows) {
+        let typeId: number | null = null;
+        const lang = row.language || '';
+        const langV = row.langVer || '';
+        const fw = row.framework || '';
+        const fwV = row.frameworkVer || '';
+        if (lang || fw) {
+          const existing = findType.get(lang, langV, fw, fwV) as { id: number } | undefined;
+          if (existing) {
+            typeId = existing.id;
+          } else {
+            typeId = Number(insertType.run(lang, langV, fw, fwV).lastInsertRowid);
+          }
+        }
         insert.run(
           row.name,
           parseInt(row.include, 10) || 0,
           parseInt(row.effort, 10) || 0,
           row.target,
           row.reportFilename,
+          typeId,
           row.properties || '{}'
         );
       }
