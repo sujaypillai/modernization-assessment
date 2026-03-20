@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -8,14 +8,21 @@ import TabPanel from 'primevue/tabpanel'
 import Toast from 'primevue/toast'
 import ConfirmDialog from 'primevue/confirmdialog'
 
+import WelcomeView from './views/WelcomeView.vue'
 import ApplicationsView from './views/ApplicationsView.vue'
 import DataCollectionView from './views/DataCollectionView.vue'
 import ValueAssessmentView from './views/ValueAssessmentView.vue'
 import ResultsView from './views/ResultsView.vue'
 import QuadrantView from './views/QuadrantView.vue'
 import SetupView from './views/SetupView.vue'
+import { useAppPropertyStore } from './stores/appPropertyStore'
 
-const activeTab = ref('applications')
+const activeTab = ref('welcome')
+const { loadAppProperties } = useAppPropertyStore()
+
+onMounted(() => {
+  loadAppProperties()
+})
 </script>
 
 <template>
@@ -30,6 +37,7 @@ const activeTab = ref('applications')
     <main class="app-main">
       <Tabs v-model:value="activeTab" class="app-tabs">
         <TabList>
+          <Tab value="welcome">Welcome</Tab>
           <Tab value="applications">Applications</Tab>
           <Tab value="data-collection">Data Collection</Tab>
           <Tab value="value-assessment">Value Assessment</Tab>
@@ -38,24 +46,27 @@ const activeTab = ref('applications')
           <Tab value="setup">Setup</Tab>
         </TabList>
         <TabPanels>
-          <TabPanel value="applications">
-            <ApplicationsView />
-          </TabPanel>
-          <TabPanel value="data-collection">
-            <DataCollectionView />
-          </TabPanel>
-          <TabPanel value="value-assessment">
-            <ValueAssessmentView />
-          </TabPanel>
-          <TabPanel value="results">
-            <ResultsView :active="activeTab === 'results'" />
-          </TabPanel>
-          <TabPanel value="quadrant">
-            <QuadrantView :active="activeTab === 'quadrant'" />
-          </TabPanel>
-          <TabPanel value="setup">
-            <SetupView />
-          </TabPanel>
+            <TabPanel value="welcome">
+              <WelcomeView @navigate="(tab: string) => activeTab = tab" />
+            </TabPanel>
+            <TabPanel value="applications">
+              <ApplicationsView />
+            </TabPanel>
+            <TabPanel value="data-collection">
+              <DataCollectionView />
+            </TabPanel>
+            <TabPanel value="value-assessment">
+              <ValueAssessmentView />
+            </TabPanel>
+            <TabPanel value="results">
+              <ResultsView :active="activeTab === 'results'" />
+            </TabPanel>
+            <TabPanel value="quadrant">
+              <QuadrantView :active="activeTab === 'quadrant'" />
+            </TabPanel>
+            <TabPanel value="setup">
+              <SetupView />
+            </TabPanel>
         </TabPanels>
       </Tabs>
     </main>

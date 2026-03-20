@@ -10,14 +10,17 @@ import type { Application, AppProperty } from '@/types'
 import AppDetails from '@/components/AppDetails.vue'
 import { useApplicationStore } from '@/stores/applicationStore'
 import { useAppPropertyStore } from '@/stores/appPropertyStore'
+import { useFilterStore } from '@/stores/filterStore'
+import FilterToolbar from '@/components/FilterToolbar.vue'
 
 const toast = useToast()
 const selectedApp = ref<Application | null>(null)
-const { applications, loadApplications, updateApplication } = useApplicationStore()
+const { loadApplications, updateApplication } = useApplicationStore()
 const { appProperties, loadAppProperties } = useAppPropertyStore()
+const { filteredApplications } = useFilterStore()
 const loading = ref(true)
 
-const includedApps = computed(() => applications.value.filter(a => a.include))
+const includedApps = computed(() => filteredApplications.value.filter(a => a.include))
 
 const boolOptions = [
   { label: 'true', value: true },
@@ -80,6 +83,7 @@ onMounted(loadData)
   <div class="data-collection-view">
     <div class="view-header">
       <h2>Data Collection</h2>
+      <FilterToolbar />
     </div>
 
     <div class="view-content">

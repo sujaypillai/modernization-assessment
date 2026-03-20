@@ -64,7 +64,7 @@ export function initializeDatabase(): void {
   `);
 
   if (isNew) {
-    console.log('Fresh database created, seeding from /data/seed...');
+    console.log('Fresh database created, seeding from server/data/seed...');
     seedDatabase(db);
     console.log('Seeding complete');
   }

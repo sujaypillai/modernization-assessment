@@ -2,11 +2,14 @@
 import { ref, computed, watch } from 'vue'
 import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
+import ReportViewer from '@/components/ReportViewer.vue'
 import { getAppProperties, getModDrivers } from '@/services/api'
 import type { Application, AppProperty, ModDriver } from '@/types'
 
 const props = defineProps<{ application: Application | null }>()
 const emit = defineEmits<{ close: [] }>()
+
+const viewingReport = ref<string | null>(null)
 
 const visible = computed({
   get: () => props.application !== null,
@@ -75,7 +78,8 @@ function getPropertyValue(propName: string): string {
           </div>
           <div class="detail-item">
             <span class="detail-label">Report File</span>
-            <span class="detail-value">{{ application.reportFilename || 'N/A' }}</span>
+            <a v-if="application.reportFilename" class="app-name" @click="viewingReport = application.reportFilename">{{ application.reportFilename }}</a>
+            <span v-else class="detail-value">N/A</span>
           </div>
         </div>
       </section>
@@ -109,6 +113,7 @@ function getPropertyValue(propName: string): string {
       </section>
     </div>
   </Dialog>
+  <ReportViewer :filename="viewingReport" @close="viewingReport = null" />
 </template>
 
 <style scoped>

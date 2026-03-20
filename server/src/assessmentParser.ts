@@ -51,8 +51,14 @@ function extractCloudReadinessStoryPoints(html: string): number {
   }, 0);
 }
 
-export function parseAssessmentHtml(filePath: string): ParsedAssessment {
+export function parseAssessmentHtml(filePath: string): ParsedAssessment | null {
   const html = fs.readFileSync(filePath, 'utf-8');
+
+  // Validate that this looks like an assessment report
+  if (!html.includes('Application Information') || !html.includes('Cloud Readiness Issues')) {
+    return null;
+  }
+
   const name = extractH1(html);
   const appInfo = extractAppInfo(html);
   const totalStoryPoints = extractCloudReadinessStoryPoints(html);

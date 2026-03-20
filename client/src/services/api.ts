@@ -49,6 +49,22 @@ export async function refreshAssessments(): Promise<{ message: string; count: nu
   })
 }
 
+export async function uploadReports(files: File[]): Promise<{ message: string; uploaded: number; processed: number }> {
+  const formData = new FormData()
+  for (const file of files) {
+    formData.append('files', file)
+  }
+  const response = await fetch(`${API_BASE}/assessments/upload`, {
+    method: 'POST',
+    body: formData
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.message || `HTTP ${response.status}`)
+  }
+  return response.json()
+}
+
 // AppTypes
 export async function getAppTypes(): Promise<AppType[]> {
   return fetchJson<AppType[]>(`${API_BASE}/app-types`)

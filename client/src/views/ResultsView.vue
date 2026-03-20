@@ -6,12 +6,15 @@ import type { Application, ModDriver } from '@/types'
 import AppDetails from '@/components/AppDetails.vue'
 import { useApplicationStore } from '@/stores/applicationStore'
 import { useModDriverStore } from '@/stores/modDriverStore'
+import { useFilterStore } from '@/stores/filterStore'
+import FilterToolbar from '@/components/FilterToolbar.vue'
 
 const props = defineProps<{ active: boolean }>()
 
 const toast = useToast()
-const { applications, loadApplications } = useApplicationStore()
+const { loadApplications } = useApplicationStore()
 const { modDrivers, loadModDrivers } = useModDriverStore()
+const { filteredApplications } = useFilterStore()
 const selectedApp = ref<Application | null>(null)
 const loading = ref(true)
 const first = ref(0)
@@ -23,7 +26,7 @@ function getTotalScore(app: Application): number {
 }
 
 const sortedApps = computed(() =>
-  applications.value
+  filteredApplications.value
     .filter(a => a.include)
     .sort((a, b) => getTotalScore(b) - getTotalScore(a))
 )
@@ -67,8 +70,11 @@ onMounted(loadData)
 <template>
   <div class="results-view">
     <div class="view-header">
-      <h2>Results</h2>
-      <p class="view-description">Applications ranked by total modernization driver score</p>
+      <div>
+        <h2>Results</h2>
+        <p class="view-description">Applications ranked by total modernization driver score</p>
+      </div>
+      <FilterToolbar />
     </div>
 
     <div class="view-content">
@@ -124,6 +130,9 @@ onMounted(loadData)
 }
 
 .view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
 }
 

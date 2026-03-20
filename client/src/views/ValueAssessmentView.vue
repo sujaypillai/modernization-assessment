@@ -6,10 +6,13 @@ import type { Application, ModDriver } from '@/types'
 import AppDetails from '@/components/AppDetails.vue'
 import { useApplicationStore } from '@/stores/applicationStore'
 import { useModDriverStore } from '@/stores/modDriverStore'
+import { useFilterStore } from '@/stores/filterStore'
+import FilterToolbar from '@/components/FilterToolbar.vue'
 
 const toast = useToast()
-const { applications, loadApplications, updateApplication } = useApplicationStore()
+const { loadApplications, updateApplication } = useApplicationStore()
 const { modDrivers, loadModDrivers } = useModDriverStore()
+const { filteredApplications } = useFilterStore()
 const loading = ref(true)
 const draggedDriver = ref<ModDriver | null>(null)
 const selectedApp = ref<Application | null>(null)
@@ -17,7 +20,7 @@ const first = ref(0)
 const pageSize = 25
 
 const includedApps = computed(() =>
-  applications.value.filter(a => a.include)
+  filteredApplications.value.filter(a => a.include)
 )
 
 const pagedApps = computed(() =>
@@ -111,8 +114,11 @@ onMounted(loadData)
 <template>
   <div class="value-assessment-view">
     <div class="view-header">
-      <h2>Value Assessment</h2>
-      <p class="view-description">Drag modernization drivers onto applications to assign them</p>
+      <div>
+        <h2>Value Assessment</h2>
+        <p class="view-description">Drag modernization drivers onto applications to assign them</p>
+      </div>
+      <FilterToolbar />
     </div>
 
     <div class="assessment-layout">
@@ -201,6 +207,9 @@ onMounted(loadData)
 }
 
 .view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
 }
 

@@ -5,12 +5,15 @@ import type { Application } from '@/types'
 import AppDetails from '@/components/AppDetails.vue'
 import { useApplicationStore } from '@/stores/applicationStore'
 import { useModDriverStore } from '@/stores/modDriverStore'
+import { useFilterStore } from '@/stores/filterStore'
+import FilterToolbar from '@/components/FilterToolbar.vue'
 
 const props = defineProps<{ active: boolean }>()
 
 const toast = useToast()
-const { applications, loadApplications } = useApplicationStore()
+const { loadApplications } = useApplicationStore()
 const { loadModDrivers } = useModDriverStore()
+const { filteredApplications } = useFilterStore()
 const loading = ref(true)
 const selectedApp = ref<Application | null>(null)
 
@@ -22,7 +25,7 @@ function getTotalScore(app: Application): number {
 const DOT_SIZE = 16
 
 const plottedApps = computed(() => {
-  const included = applications.value.filter(a => a.include)
+  const included = filteredApplications.value.filter(a => a.include)
   if (included.length === 0) return []
 
   const scores = included.map(a => getTotalScore(a))
@@ -95,8 +98,11 @@ onMounted(loadData)
 <template>
   <div class="quadrant-view">
     <div class="view-header">
-      <h2>Quadrant</h2>
-      <p class="view-description">Applications plotted by modernization effort vs. driver value</p>
+      <div>
+        <h2>Quadrant</h2>
+        <p class="view-description">Applications plotted by modernization effort vs. driver value</p>
+      </div>
+      <FilterToolbar />
     </div>
 
     <div class="quadrant-container">
@@ -172,6 +178,9 @@ onMounted(loadData)
 }
 
 .view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
   flex-shrink: 0;
 }

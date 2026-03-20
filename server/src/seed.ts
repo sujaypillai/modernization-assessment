@@ -45,9 +45,12 @@ function getDataDir(): string {
   return process.env.NODE_ENV === 'production' ? '/data' : path.join(__dirname, '..', '..', 'data');
 }
 
+function getSeedDir(): string {
+  return path.join(__dirname, '..', 'data', 'seed');
+}
+
 export function seedDatabase(db: DatabaseType): void {
-  const dataDir = getDataDir();
-  const seedDir = path.join(dataDir, 'seed');
+  const seedDir = getSeedDir();
   const appTypesFile = path.join(seedDir, 'AppTypes.csv');
   const appPropertiesFile = path.join(seedDir, 'AppProperties.csv');
   const modDriversFile = path.join(seedDir, 'ModernizationDrivers.csv');
@@ -118,8 +121,21 @@ export function loadApplications(db: DatabaseType): { mode: string; count: numbe
 
     let added = 0;
     let updated = 0;
+    let skipped = 0;
     for (const file of assessmentFiles) {
-      const parsed = parseAssessmentHtml(file);
+      let parsed;
+      try {
+        parsed = parseAssessmentHtml(file);
+      } catch (err) {
+        console.warn(`Skipping ${path.basename(file)}: failed to parse (${err})`);
+        skipped++;
+        continue;
+      }
+      if (!parsed) {
+        console.warn(`Skipping ${path.basename(file)}: not a valid assessment report`);
+        skipped++;
+        continue;
+      }
       const properties: Record<string, unknown> = {};
       if (parsed.language) properties['Language'] = parsed.language;
       if (parsed.framework) properties['Framework'] = parsed.framework;
@@ -148,18 +164,17 @@ export function loadApplications(db: DatabaseType): { mode: string; count: numbe
         added++;
       }
     }
+    if (skipped > 0) {
+      console.log(`Assessment refresh: ${skipped} file(s) skipped (not valid assessment reports)`);
+    }
     console.log(`Assessment refresh: ${added} added, ${updated} updated`);
     return { mode: 'assessments', count: added + updated };
   } else {
-    // No real assessments — load demo data only if no apps exist yet
-    const appCount = (db.prepare('SELECT COUNT(*) as cnt FROM Application').get() as { cnt: number }).cnt;
-    if (appCount > 0) {
-      console.log(`No assessment files found, keeping ${appCount} existing applications`);
-      return { mode: 'demo', count: appCount };
-    }
+    // No real assessments — replace with demo data
+    db.prepare('DELETE FROM Application').run();
 
-    const seedDir = path.join(dataDir, 'seed');
-    const applicationsFile = path.join(seedDir, 'DemoApplications.csv');
+    const demoSeedDir = getSeedDir();
+    const applicationsFile = path.join(demoSeedDir, 'DemoApplications.csv');
     if (fs.existsSync(applicationsFile)) {
       const rows = parseCsv(applicationsFile);
       const insert = db.prepare(

@@ -23,6 +23,7 @@ COPY server/package.json server/package-lock.json server/
 RUN cd server && npm ci --omit=dev
 
 COPY --from=build-server /app/server/dist server/dist
+COPY server/data server/data
 COPY --from=build-client /app/client/dist client/dist
 
 RUN mkdir -p /data/assessments
