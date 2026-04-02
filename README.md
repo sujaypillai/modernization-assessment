@@ -1,6 +1,6 @@
 # Modernization Assessment Tool
 
-A web application for assessing legacy applications for modernization. Built with a Vue 3 frontend and Node.js/Express backend with SQLite storage.
+An example web application for facilitating business value discussions in Application Modernization Programs at Scale. 
 
 ## Quick Start (Docker)
 
@@ -10,21 +10,3 @@ docker compose up --build
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
-
-## Development Setup
-
-**Server** (port 3000):
-
-```bash
-cd server
-npm install
-npm run dev
-```
-
-**Client** (Vite dev server):
-
-```bash
-cd client
-npm install
-npm run dev
-```
