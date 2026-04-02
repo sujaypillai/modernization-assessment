@@ -10,3 +10,8 @@ docker compose up --build
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+## Screenshot
+
+![Modernization Assessment Tool Screenshot](./assets/screenshot.png)
+
