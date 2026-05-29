@@ -17,6 +17,7 @@ import QuadrantView from './views/QuadrantView.vue'
 import SetupView from './views/SetupView.vue'
 import ExportView from './views/ExportView.vue'
 import { useAppPropertyStore } from './stores/appPropertyStore'
+import WorkflowStepper from './components/WorkflowStepper.vue'
 
 const activeTab = ref('welcome')
 const { loadAppProperties } = useAppPropertyStore()
@@ -36,6 +37,7 @@ onMounted(() => {
     </header>
     
     <main class="app-main">
+      <WorkflowStepper :active-tab="activeTab" @navigate="(tab) => activeTab = tab" />
       <Tabs v-model:value="activeTab" class="app-tabs">
         <TabList>
           <Tab value="welcome">Welcome</Tab>
