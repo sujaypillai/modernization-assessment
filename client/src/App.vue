@@ -37,7 +37,6 @@ onMounted(() => {
     </header>
     
     <main class="app-main">
-      <WorkflowStepper :active-tab="activeTab" @navigate="(tab) => activeTab = tab" />
       <Tabs v-model:value="activeTab" class="app-tabs">
         <TabList>
           <Tab value="welcome">Welcome</Tab>
@@ -49,6 +48,7 @@ onMounted(() => {
           <Tab value="setup">Setup</Tab>
           <Tab value="export">Export</Tab>
         </TabList>
+        <WorkflowStepper :active-tab="activeTab" @navigate="(tab) => activeTab = tab" />
         <TabPanels>
             <TabPanel value="welcome">
               <WelcomeView @navigate="(tab: string) => activeTab = tab" />

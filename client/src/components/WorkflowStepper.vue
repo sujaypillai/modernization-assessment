@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps<{
   activeTab: string
@@ -28,7 +28,7 @@ function loadCompleted(): Set<string> {
 
 const completedTabs = ref<Set<string>>(loadCompleted())
 
-watch(() => props.activeTab, (newTab, oldTab) => {
+watch(() => props.activeTab, (_newTab, oldTab) => {
   if (oldTab && oldTab !== 'welcome') {
     completedTabs.value.add(oldTab)
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...completedTabs.value]))
@@ -45,10 +45,6 @@ function navigateTo(step: typeof STEPS[0]) {
   emit('navigate', step.tabs[0])
 }
 
-const currentStepLabel = computed(() => {
-  const step = STEPS.find(s => s.tabs.includes(props.activeTab))
-  return step ? step.label : ''
-})
 </script>
 
 <template>

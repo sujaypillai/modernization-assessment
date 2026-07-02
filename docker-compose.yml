@@ -2,6 +2,6 @@ services:
   modernization-assessment:
     build: .
     ports:
-      - "3000:3000"
+      - "3002:3000"
     volumes:
       - ./data:/data
